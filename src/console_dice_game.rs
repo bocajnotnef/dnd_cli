@@ -13,17 +13,14 @@ impl ConsoleDiceGame {
   pub fn run(&self) {
       println!("{}", dice_game_core::DiceGame::rules());
 
-      // TODO: instead of delegate, replace with player pattern
-      self.game.run(self)
+
   }
 }
 
-struct ConsolePlayer {
-
-}
+struct ConsolePlayer {}
 
 impl dice_game_core::Player for ConsolePlayer {
-    fn get_initial_roll(&self) -> u8 {
+    fn get_initial_roll(&mut self) -> u8 {
 
       // get player roll
       let mut the_roll = prompt_and_read(&String::from("Player's chosen roll"));
@@ -37,11 +34,11 @@ impl dice_game_core::Player for ConsolePlayer {
       the_roll
     }
 
-    fn make_initial_bet(&self) -> u16 {
+    fn make_initial_bet(&mut self) -> u16 {
       prompt_and_read(&String::from("Player's initial bet"))
     }
 
-    fn react_to_bet(&self, current_bet: u16) -> dice_game_core::PlayerAction {
+    fn react_to_bet(&mut self, current_bet: u16) -> dice_game_core::PlayerAction {
       let player_reaction = prompt_and_read(&String::from("Bet to player; 0 to fold"));
 
       if player_reaction == 0 {

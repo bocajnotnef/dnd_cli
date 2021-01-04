@@ -1,4 +1,7 @@
+use core::panic;
+
 use rand::Rng;
+use rand::prelude::ThreadRng;
 
 pub enum PlayerAction {
     Fold,
@@ -7,64 +10,60 @@ pub enum PlayerAction {
 }
 
 pub trait Player {
-    fn get_initial_roll(&self) -> u8;
-    fn make_initial_bet(&self) -> u16;
-    fn react_to_bet(&self, current_bet: u16) -> PlayerAction;
+    fn get_initial_roll(&mut self) -> u8;
+    // TODO: consider units for bets;
+    fn make_initial_bet(&mut self) -> u16;
+    fn react_to_bet(&mut self, current_bet: u16) -> PlayerAction;
 }
 
 struct RandomPlayer {
+    rand: ThreadRng
+}
 
+impl RandomPlayer {
+    const MIN_BET: u16 = 1;
+    const MAX_BET: u16 = 3;
+
+    fn new() -> RandomPlayer {
+        RandomPlayer { rand: rand::thread_rng() }
+    }
 }
 
 impl Player for RandomPlayer {
-    fn get_initial_roll(&self) -> u8 {
-        ${0:todo!()}
+    fn get_initial_roll(&mut self) -> u8 {
+        return self.rand.gen_range(1, 7);
     }
 
-    fn make_initial_bet(&self) -> u16 {
-        todo!()
+    fn make_initial_bet(&mut self) -> u16 {
+        return self.rand.gen_range(RandomPlayer::MIN_BET, RandomPlayer::MAX_BET+1);
     }
 
-    fn react_to_bet(&self, current_bet: u16) -> PlayerAction {
-        todo!()
+    fn react_to_bet(&mut self, current_bet: u16) -> PlayerAction {
+        match self.rand.gen_range(0, 3) {
+            0 => return PlayerAction::Fold,
+            1 => return PlayerAction::Call,
+            2 => return PlayerAction::Raise(self.rand.gen_range(RandomPlayer::MIN_BET, RandomPlayer::MAX_BET+1)),
+            _ => panic!("This shouldn't be possible, but I don't know how to tell the compiler that the rand range is constrained, sooo")
+        }
     }
 }
 
-pub trait Delegate { // so I'm a swift alum, sue me
-    fn get_player_roll(&self) -> u8;
-    fn get_player_bet(&self, min: u16) -> u16;
-
-    // TODO: refactor from 'delegate' to 'player'
-}
 pub struct DiceGame {
 // TODO: set betting range
     pub players: u32,
 }
 
 impl DiceGame {
-    fn get_constrained_player_roll(delegate: &dyn Delegate) -> u8 {
-        // get player roll
-        let mut the_roll = delegate.get_player_roll();
-        loop {
-            if (1..7).contains(&the_roll) {
-                break;
-            }
-            the_roll = delegate.get_player_roll();
-        }
-
-        the_roll
-    }
-
-    pub fn run(&self, delegate: &dyn Delegate) {
+    pub fn run(&self) {
 
         // PHASE ONE: Get all the rolls
 
-        let player_roll = DiceGame::get_constrained_player_roll(delegate);
+        // let player_roll = DiceGame::get_constrained_player_roll(delegate);
         let mut rng = rand::thread_rng();
         let ai_rolls: Vec<u8> = (1..self.players+1).map(|_| rng.gen_range(1,7)).collect();
 
         println!("The rolls are:");
-        println!("Player: {}", player_roll);
+        // println!("Player: {}", player_roll);
         println!("AIs: {:?}", ai_rolls);
 
         // PHASE TWO: Place all the bets
@@ -74,7 +73,7 @@ impl DiceGame {
         for ai_bet in ai_rolls.iter() {
             betting_order.push((*ai_bet, false));
         }
-        betting_order.push((player_roll, true));
+        // betting_order.push((player_roll, true));
         betting_order.sort_by(|a, b| a.0.cmp(&b.0));
 
         println!("The betting order is: (bet, is_player): {:?}", betting_order);
