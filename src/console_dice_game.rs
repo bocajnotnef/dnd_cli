@@ -15,7 +15,7 @@ impl <'a>ConsoleDiceGame {
 
     players.push(Box::new(ConsolePlayer{}));
 
-    return ConsoleDiceGame{ game: (dice_game_core::DiceGame{ players: (players) })  }
+    return ConsoleDiceGame{ game: dice_game_core::DiceGame::new(players)  };
   }
 
   pub fn run(&self) {
