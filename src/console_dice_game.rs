@@ -10,7 +10,7 @@ pub struct RandomPlayer {
 
 impl RandomPlayer {
     const MIN_BET: u16 = 1;
-    const MAX_BET: u16 = 3;
+    const MAX_BET: u16 = 20;
 
     pub fn new() -> RandomPlayer {
         let mut the_rng = rand::thread_rng();
@@ -28,13 +28,17 @@ impl dice_game_core::Player for RandomPlayer {
     }
 
     fn make_initial_bet(&mut self) -> u16 {
-        return self
+        let bet = self
             .rand
             .gen_range(RandomPlayer::MIN_BET, RandomPlayer::MAX_BET + 1);
+        println!("{} is making initial bet {}", self.description, bet);
+        bet
     }
 
     fn react_to_bet(&mut self, current_bet: u16) -> dice_game_core::PlayerAction {
-        match self.rand.gen_range(0, 3) {
+        let limiter = if current_bet < RandomPlayer::MAX_BET { 3 } else {2};
+
+        match self.rand.gen_range(0, limiter) {
             0 => {
                 println!("{} chose to fold.", self.description);
                 return dice_game_core::PlayerAction::Fold
@@ -44,7 +48,7 @@ impl dice_game_core::Player for RandomPlayer {
                 return dice_game_core::PlayerAction::Call
             },
             2 => {
-                let the_bet = self.rand.gen_range(RandomPlayer::MIN_BET, RandomPlayer::MAX_BET+1);
+                let the_bet = self.rand.gen_range(current_bet, RandomPlayer::MAX_BET+1);
                 println!("{} chose to raise to {}", self.description, the_bet);
                 return dice_game_core::PlayerAction::Raise(the_bet)
             },

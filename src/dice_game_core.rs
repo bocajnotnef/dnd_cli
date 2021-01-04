@@ -1,5 +1,5 @@
 use core::panic;
-use std::iter::Sum;
+use std::io::{stdin, stdout, Write};
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum PlayerAction {
@@ -124,7 +124,7 @@ impl DiceGame {
             final_rolls.push((rolls.0 + rolls.1 + rolls.2).into());
         }
 
-        let the_pot = bets.iter().fold(0, |acc, bet| if let PlayerAction::Call = bet {acc + the_bet} else {0});
+        let the_pot = bets.iter().fold(0, |acc, bet| if let PlayerAction::Call = bet {acc + the_bet} else {acc});
 
         // https://stackoverflow.com/a/57815298
         let winning_player_idx = final_rolls.iter().enumerate().max_by(|(_, value0), (_, value1)| value0.cmp(value1)).map(|(idx, _)| idx).unwrap();
