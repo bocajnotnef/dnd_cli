@@ -70,34 +70,36 @@ impl DiceGame {
         // TLDR run this loop as long as there's a "raise" present
         while bets.iter().any(|x| {
             if let PlayerAction::Raise(_) = x {
+                // TODO: handle what happens if everyone besides one guy folds
                 true
             } else {
                 false
             }
         }) {
-            let mut new_bets: Vec<PlayerAction> = Vec::new();
+            // let mut new_bets: Vec<PlayerAction> = Vec::new();
 
             for (index, action) in bets.iter_mut().enumerate() {
                 match action {
                     PlayerAction::Raise(old_bet) => {
                         if *old_bet < the_bet {
-                            new_bets.push(self.players[index].react_to_bet(the_bet));
+                            *action = self.players[index].react_to_bet(the_bet);
+                            // new_bets.push(self.players[index].react_to_bet(the_bet));
                         } else {
-                            new_bets.push(PlayerAction::Call); // this was a raise from last 'round'--resolve it
+                            *action = PlayerAction::Call;
+                            // new_bets.push(PlayerAction::Call); // this was a raise from last 'round'--resolve it
                             continue;
                         }
                     }
-                    PlayerAction::Fold => new_bets.push(*action),
+                    PlayerAction::Fold => (),// do nothing,
                     PlayerAction::Call => {
                         let reaction = self.players[index].react_to_bet(the_bet);
                         if let PlayerAction::Raise(new_bet) = reaction {
                             the_bet = new_bet;
                         }
+                        *action = reaction;
                     }
                 }
             }
-
-            bets = new_bets;
         }
 
         // at this point everyone should be a 'call' or 'fold'

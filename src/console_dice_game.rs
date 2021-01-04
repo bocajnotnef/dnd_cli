@@ -35,9 +35,19 @@ impl dice_game_core::Player for RandomPlayer {
 
     fn react_to_bet(&mut self, current_bet: u16) -> dice_game_core::PlayerAction {
         match self.rand.gen_range(0, 3) {
-            0 => return dice_game_core::PlayerAction::Fold,
-            1 => return dice_game_core::PlayerAction::Call,
-            2 => return dice_game_core::PlayerAction::Raise(self.rand.gen_range(RandomPlayer::MIN_BET, RandomPlayer::MAX_BET+1)),
+            0 => {
+                println!("{} chose to fold.", self.description);
+                return dice_game_core::PlayerAction::Fold
+            },
+            1 => {
+                println!("{} chose to call.", self.description);
+                return dice_game_core::PlayerAction::Call
+            },
+            2 => {
+                let the_bet = self.rand.gen_range(RandomPlayer::MIN_BET, RandomPlayer::MAX_BET+1);
+                println!("{} chose to raise to {}", self.description, the_bet);
+                return dice_game_core::PlayerAction::Raise(the_bet)
+            },
             _ => panic!("This shouldn't be possible, but I don't know how to tell the compiler that the rand range is constrained, sooo")
         }
     }
@@ -109,7 +119,7 @@ impl dice_game_core::Player for ConsolePlayer {
     }
 
     fn react_to_bet(&mut self, current_bet: u16) -> dice_game_core::PlayerAction {
-      let player_reaction = prompt_and_read(&String::from("Bet to player; 0 to fold"));
+      let player_reaction = prompt_and_read(&String::from(format!("Bet (is {}) to player; 0 to fold", current_bet)));
 
       if player_reaction == 0 {
         return dice_game_core::PlayerAction::Fold;
