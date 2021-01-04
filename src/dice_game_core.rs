@@ -16,7 +16,7 @@ pub trait Player {
     fn react_to_bet(&mut self, current_bet: u16) -> PlayerAction;
 }
 
-struct RandomPlayer {
+pub struct RandomPlayer {
     rand: ThreadRng
 }
 
@@ -24,7 +24,7 @@ impl RandomPlayer {
     const MIN_BET: u16 = 1;
     const MAX_BET: u16 = 3;
 
-    fn new() -> RandomPlayer {
+    pub fn new() -> RandomPlayer {
         RandomPlayer { rand: rand::thread_rng() }
     }
 }
@@ -48,31 +48,31 @@ impl Player for RandomPlayer {
     }
 }
 
-pub struct DiceGame<'a> {
-    players: Vec<&'a dyn Player>
+pub struct DiceGame {
+    players: Vec<Box<dyn Player>>
 }
 
-impl DiceGame<'_> {
-    pub fn new(players: Vec<&dyn Player>) -> DiceGame {
+impl DiceGame {
+    pub fn new(players: Vec<Box<dyn Player>>) -> DiceGame {
         DiceGame { players: players }
     }
 
-    pub fn run(&self) {
+    pub fn run(&mut self) {
         // PHASE ONE: Get all the rolls
 
         // get initial rolls, then sort them to get our betting order
         #[derive(Debug)]
         struct PlayerRoll { index: usize, roll: u8}
-        let mut initialRolls: Vec<PlayerRoll> = Vec::new();
-        for (position, player) in self.players.iter().enumerate() {
-            initialRolls.push(PlayerRoll{index: position, roll: player.get_initial_roll()});
+        let mut initial_rolls: Vec<PlayerRoll> = Vec::new();
+        for (position, player_box) in self.players.iter_mut().enumerate() {
+            initial_rolls.push(PlayerRoll{index: position, roll: player_box.get_initial_roll()});
         }
-        initialRolls.sort_by(|a, b| a.roll.cmp(&b.roll));
+        initial_rolls.sort_by(|a, b| a.roll.cmp(&b.roll));
 
         // PHASE TWO: Place all the bets
-        println!("The betting order is: (bet, is_player): {:?}", initialRolls);
+        println!("The betting order is: (bet, is_player): {:?}", initial_rolls);
 
-        let mut first_bet = self.players[initialRolls[0].index].make_initial_bet();
+        let mut first_bet = self.players[initial_rolls[0].index].make_initial_bet();
         // TODO: build vec of PlayerActions to iter over; first better would be a 'call', I think
         // TODO: run around until everything is a 'call' or a 'fold'--NOTE: don't allow people to re-raise
         // TODO: might be hard to prevent future raises, but don't worry about that for now

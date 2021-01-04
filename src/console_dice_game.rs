@@ -5,14 +5,21 @@ pub struct ConsoleDiceGame {
   game: dice_game_core::DiceGame,
 }
 
-impl ConsoleDiceGame {
-  pub fn new(num__ai_players: u32) -> ConsoleDiceGame {
-      return ConsoleDiceGame{ game: (dice_game_core::DiceGame{ players: (num_players) })  }
+impl <'a>ConsoleDiceGame {
+  pub fn new(num_ai_players: u32) -> ConsoleDiceGame {
+    let mut players: Vec<Box<dyn dice_game_core::Player>> = Vec::new();
+
+    for _ in 0..num_ai_players {
+      players.push(Box::new(dice_game_core::RandomPlayer::new()));
+    }
+
+    players.push(Box::new(ConsolePlayer{}));
+
+    return ConsoleDiceGame{ game: (dice_game_core::DiceGame{ players: (players) })  }
   }
 
   pub fn run(&self) {
       println!("{}", dice_game_core::DiceGame::rules());
-
 
   }
 }
