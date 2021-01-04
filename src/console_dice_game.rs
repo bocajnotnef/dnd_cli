@@ -6,7 +6,7 @@ pub struct ConsoleDiceGame {
 }
 
 impl ConsoleDiceGame {
-  pub fn new(num_players: u32) -> ConsoleDiceGame {
+  pub fn new(num__ai_players: u32) -> ConsoleDiceGame {
       return ConsoleDiceGame{ game: (dice_game_core::DiceGame{ players: (num_players) })  }
   }
 

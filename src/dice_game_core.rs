@@ -48,50 +48,35 @@ impl Player for RandomPlayer {
     }
 }
 
-pub struct DiceGame {
-// TODO: set betting range
-    pub players: u32,
+pub struct DiceGame<'a> {
+    players: Vec<&'a dyn Player>
 }
 
-impl DiceGame {
-    pub fn run(&self) {
+impl DiceGame<'_> {
+    pub fn new(players: Vec<&dyn Player>) -> DiceGame {
+        DiceGame { players: players }
+    }
 
+    pub fn run(&self) {
         // PHASE ONE: Get all the rolls
 
-        // let player_roll = DiceGame::get_constrained_player_roll(delegate);
-        let mut rng = rand::thread_rng();
-        let ai_rolls: Vec<u8> = (1..self.players+1).map(|_| rng.gen_range(1,7)).collect();
-
-        println!("The rolls are:");
-        // println!("Player: {}", player_roll);
-        println!("AIs: {:?}", ai_rolls);
+        // get initial rolls, then sort them to get our betting order
+        #[derive(Debug)]
+        struct PlayerRoll { index: usize, roll: u8}
+        let mut initialRolls: Vec<PlayerRoll> = Vec::new();
+        for (position, player) in self.players.iter().enumerate() {
+            initialRolls.push(PlayerRoll{index: position, roll: player.get_initial_roll()});
+        }
+        initialRolls.sort_by(|a, b| a.roll.cmp(&b.roll));
 
         // PHASE TWO: Place all the bets
-        // TODO: for now, full rando this. eventually, make players think
+        println!("The betting order is: (bet, is_player): {:?}", initialRolls);
 
-        let mut betting_order: Vec<(u8, bool)> = Vec::new();
-        for ai_bet in ai_rolls.iter() {
-            betting_order.push((*ai_bet, false));
-        }
-        // betting_order.push((player_roll, true));
-        betting_order.sort_by(|a, b| a.0.cmp(&b.0));
-
-        println!("The betting order is: (bet, is_player): {:?}", betting_order);
-
-        let mut the_pot: u16 = 0;
-        let mut max_bet: u16 = 0;
-
-        for to_bet in betting_order.iter() {
-            if to_bet.1 {
-                // is player
-                if max_bet > 0 {
-                    // player must "call" at least the max bet
-
-                }
-            } else {
-
-            }
-        }
+        let mut first_bet = self.players[initialRolls[0].index].make_initial_bet();
+        // TODO: build vec of PlayerActions to iter over; first better would be a 'call', I think
+        // TODO: run around until everything is a 'call' or a 'fold'--NOTE: don't allow people to re-raise
+        // TODO: might be hard to prevent future raises, but don't worry about that for now
+        todo!("impl betting")
     }
 
     pub fn rules() -> &'static str {
