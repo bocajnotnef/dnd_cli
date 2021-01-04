@@ -3,6 +3,7 @@ use core::panic;
 use rand::Rng;
 use rand::prelude::ThreadRng;
 
+#[derive(PartialEq, Copy, Clone)]
 pub enum PlayerAction {
     Fold,
     Call,
@@ -72,11 +73,45 @@ impl DiceGame {
         // PHASE TWO: Place all the bets
         println!("The betting order is: (bet, is_player): {:?}", initial_rolls);
 
-        let mut first_bet = self.players[initial_rolls[0].index].make_initial_bet();
-        // TODO: build vec of PlayerActions to iter over; first better would be a 'call', I think
-        // TODO: run around until everything is a 'call' or a 'fold'--NOTE: don't allow people to re-raise
-        // TODO: might be hard to prevent future raises, but don't worry about that for now
-        todo!("impl betting")
+        let mut the_bet = self.players[initial_rolls[0].index].make_initial_bet();
+        // NOTE: bet order/indexing should match initial_rolls ordering, but this is implicit
+        let mut bets: Vec<PlayerAction> = Vec::new();
+        bets.push(PlayerAction::Raise(the_bet));
+
+        for _ in 1..initial_rolls.len() {
+            bets.push(PlayerAction::Call);
+        }
+
+        // this isn't as readable as I want it to be
+        // TLDR run this loop as long as there's a "raise" present
+        while bets.iter().any(|x| if let PlayerAction::Raise(_) = x { true} else {false}) {
+
+            let mut new_bets: Vec<PlayerAction> = Vec::new();
+
+            for (index, action) in bets.iter_mut().enumerate() {
+                match action {
+                    PlayerAction::Raise(old_bet) => {
+                        if *old_bet < the_bet {
+                            new_bets.push(self.players[index].react_to_bet(the_bet));
+                        } else {
+                            new_bets.push(PlayerAction::Call); // this was a raise from last 'round'--resolve it
+                            continue;
+                        }
+                    }
+                    PlayerAction::Fold => new_bets.push(*action),
+                    PlayerAction::Call => {
+                        let reaction = self.players[index].react_to_bet(the_bet);
+                        if let PlayerAction::Raise(new_bet) = reaction { the_bet = new_bet; }
+                    }
+                }
+            }
+
+            bets = new_bets;
+        }
+
+        // at this point everyone should be a 'call' or 'fold'
+        assert!(!bets.iter().any(|action| if let PlayerAction::Raise(_) = action { true} else {false}), "Raise where there shouldn't be one");
+
     }
 
     pub fn rules() -> &'static str {
