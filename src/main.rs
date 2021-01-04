@@ -2,6 +2,7 @@ use std::io::{Write, stdin, stdout};
 use rand::Rng;
 
 struct DiceGame {
+    // TODO: set betting range
     players: u32,
 }
 
@@ -27,13 +28,24 @@ trait DiceGameDelegate { // so I'm a swift alum, sue me
 }
 
 impl DiceGame {
+    fn get_constrained_player_roll(delegate: &dyn DiceGameDelegate) -> u8 {
+        // get player roll
+        let mut the_roll = delegate.get_player_roll();
+        loop {
+            if (1..7).contains(&the_roll) {
+                break;
+            }
+            the_roll = delegate.get_player_roll();
+        }
+
+        the_roll
+    }
+
     pub fn run(&self, delegate: &dyn DiceGameDelegate) {
 
         // PHASE ONE: Get all the rolls
 
-        // get player roll
-        let player_roll = delegate.get_player_roll();
-
+        let player_roll = DiceGame::get_constrained_player_roll(delegate);
         let mut rng = rand::thread_rng();
         let ai_rolls: Vec<u8> = (1..self.players+1).map(|_| rng.gen_range(1,7)).collect();
 
@@ -43,17 +55,15 @@ impl DiceGame {
 
         // PHASE TWO: Place all the bets
         // TODO: for now, full rando this. eventually, make players think
-        // we __do__ need to decide if it's the player who bets first or the "AIs"
-
-        // tuple_list2.sort_by(|a, b| a.1.cmp(b.1));
 
         let mut betting_order: Vec<(u8, bool)> = Vec::new();
-
         for ai_bet in ai_rolls.iter() {
             betting_order.push((*ai_bet, false));
         }
-
         betting_order.push((player_roll, true));
+        betting_order.sort_by(|a, b| a.0.cmp(&b.0));
+
+        println!("The betting order is: (bet, is_player): {:?}", betting_order);
     }
 
     fn rules() -> &'static str {
