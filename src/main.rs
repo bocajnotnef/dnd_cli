@@ -8,6 +8,6 @@ fn main() {
     println!("Greetings. Shall we play a game of dice?");
     let num_players = console_utilities::prompt_and_read(&String::from("Number of AI players"));
 
-    let game = console_dice_game::ConsoleDiceGame::new(num_players);
+    let mut game = console_dice_game::ConsoleDiceGame::new(num_players);
     game.run();
 }

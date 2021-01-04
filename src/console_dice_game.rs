@@ -18,9 +18,9 @@ impl <'a>ConsoleDiceGame {
     return ConsoleDiceGame{ game: dice_game_core::DiceGame::new(players)  };
   }
 
-  pub fn run(&self) {
-      println!("{}", dice_game_core::DiceGame::rules());
-
+  pub fn run(&mut self) {
+    println!("{}", dice_game_core::DiceGame::rules());
+    self.game.run();
   }
 }
 
