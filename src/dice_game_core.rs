@@ -16,11 +16,11 @@ pub enum PlayerResult {
 // TODO: put the random generator in like, 'GlobalGame' or 'MetaUniverse' or something
 // currently VERY STUPID that rolling a dice modifies the playerstate
 pub trait Player {
-    fn get_initial_roll(&mut self) -> u8;
+    fn get_initial_roll(&self) -> u8;
     // TODO: consider units for bets;
-    fn make_initial_bet(&mut self) -> u16;
-    fn react_to_bet(&mut self, current_bet: u16) -> PlayerAction;
-    fn get_hands(&mut self) -> (u8, u8, u8); // TODO: better name
+    fn make_initial_bet(&self) -> u16;
+    fn react_to_bet(&self, current_bet: u16) -> PlayerAction;
+    fn get_hands(&self) -> (u8, u8, u8); // TODO: better name
     fn inform_of_result(&self, result: PlayerResult);
 }
 
@@ -62,7 +62,7 @@ impl DiceGame {
                 roll: player_box.get_initial_roll(),
             });
         }
-        initial_rolls.sort_by(|a, b| a.roll.cmp(&b.roll));
+        initial_rolls.sort_by(|a, b| b.roll.cmp(&a.roll));
         return initial_rolls
     }
 
@@ -148,16 +148,21 @@ impl DiceGame {
         let RiverState{pot: the_pot, indicies_in_play: playing_indices} = self.process_bets(&initial_rolls);
 
         // PHASE 3: figure out who won
-        let hands: Vec<(&usize, u8)> = playing_indices.iter().zip(playing_indices.iter().map(|index| hands[*index])).collect();
-        // https://stackoverflow.com/a/57815298
-        // TODO: handle ties
-        let winning_player_idx = hands.iter()
-                                            .enumerate()
-                                            .max_by(|(_, value0), (_, value1)| value0.cmp(value1))
-                                            .map(|(idx, _)| idx).unwrap();
+        let mut remaining_hands: Vec<(usize, u8)> = Vec::new();
+        // TODO: this could probably be a map
+        for index in playing_indices {
+            remaining_hands.push((index, hands[index]));
+        }
+
+        // sort descending
+        remaining_hands.sort_by(|(_, a), (_, b)| b.cmp(a));
+        let max_hand = remaining_hands[0].1;
+        let winning_indicies: Vec<usize> = remaining_hands.iter().filter_map(|(index, hand)| if *hand == max_hand { Some(*index) } else {None} ).collect();
+
+
         for (index, player) in self.players.iter().enumerate() {
-            if index == winning_player_idx {
-                player.inform_of_result(PlayerResult::Won(the_pot));
+            if winning_indicies.contains(&index) {
+                player.inform_of_result(PlayerResult::Won(the_pot/(winning_indicies.len() as u32)));
             } else {
                 player.inform_of_result(PlayerResult::Lost);
             }

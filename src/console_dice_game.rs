@@ -1,10 +1,11 @@
 use crate::console_utilities::prompt_and_read;
 use crate::dice_game_core;
+use std::cell::RefCell;
 use rand::prelude::ThreadRng;
 use rand::Rng;
 
 pub struct RandomPlayer {
-    rand: ThreadRng,
+    rand: RefCell<ThreadRng>,
     description: String,
 }
 
@@ -17,28 +18,29 @@ impl RandomPlayer {
 
         RandomPlayer {
             description: String::from(format!("A random player ({})", the_rng.gen_range(1, 1000))),
-            rand: the_rng,
+            rand: RefCell::new(the_rng),
         }
     }
 }
 
 impl dice_game_core::Player for RandomPlayer {
-    fn get_initial_roll(&mut self) -> u8 {
-        return self.rand.gen_range(1, 7); // d6
+    fn get_initial_roll(&self) -> u8 {
+        return self.rand.borrow_mut().gen_range(1, 7); // d6
     }
 
-    fn make_initial_bet(&mut self) -> u16 {
+    fn make_initial_bet(&self) -> u16 {
         let bet = self
-            .rand
+            .rand.borrow_mut()
             .gen_range(RandomPlayer::MIN_BET, RandomPlayer::MAX_BET + 1);
         println!("{} is making initial bet {}", self.description, bet);
         bet
     }
 
-    fn react_to_bet(&mut self, current_bet: u16) -> dice_game_core::PlayerAction {
+    fn react_to_bet(&self, current_bet: u16) -> dice_game_core::PlayerAction {
         let limiter = if current_bet < RandomPlayer::MAX_BET { 3 } else {2};
+        let mut rand = self.rand.borrow_mut();
 
-        match self.rand.gen_range(0, limiter) {
+        match rand.gen_range(0, limiter) {
             0 => {
                 println!("{} chose to fold.", self.description);
                 return dice_game_core::PlayerAction::Fold
@@ -48,7 +50,7 @@ impl dice_game_core::Player for RandomPlayer {
                 return dice_game_core::PlayerAction::Call
             },
             2 => {
-                let the_bet = self.rand.gen_range(current_bet, RandomPlayer::MAX_BET+1);
+                let the_bet = rand.gen_range(current_bet, RandomPlayer::MAX_BET+1);
                 println!("{} chose to raise to {}", self.description, the_bet);
                 return dice_game_core::PlayerAction::Raise(the_bet)
             },
@@ -56,12 +58,13 @@ impl dice_game_core::Player for RandomPlayer {
         }
     }
 
-    fn get_hands(&mut self) -> (u8, u8, u8) {
+    fn get_hands(&self) -> (u8, u8, u8) {
+        let mut rand = self.rand.borrow_mut();
         return (
             // 3d6
-            self.rand.gen_range(1, 7),
-            self.rand.gen_range(1, 7),
-            self.rand.gen_range(1, 7),
+            rand.gen_range(1, 7),
+            rand.gen_range(1, 7),
+            rand.gen_range(1, 7),
         );
     }
 
@@ -114,15 +117,15 @@ impl ConsolePlayer {
 }
 
 impl dice_game_core::Player for ConsolePlayer {
-    fn get_initial_roll(&mut self) -> u8 {
+    fn get_initial_roll(&self) -> u8 {
         ConsolePlayer::roll_d6(&String::from("Player's chosen initial (revealed!) roll"))
     }
 
-    fn make_initial_bet(&mut self) -> u16 {
+    fn make_initial_bet(&self) -> u16 {
       prompt_and_read(&String::from("Player's initial bet"))
     }
 
-    fn react_to_bet(&mut self, current_bet: u16) -> dice_game_core::PlayerAction {
+    fn react_to_bet(&self, current_bet: u16) -> dice_game_core::PlayerAction {
       let player_reaction = prompt_and_read(&String::from(format!("Bet (is {}) to player; 0 to fold", current_bet)));
 
       if player_reaction == 0 {
@@ -136,7 +139,7 @@ impl dice_game_core::Player for ConsolePlayer {
       }
     }
 
-    fn get_hands(&mut self) -> (u8, u8, u8) {
+    fn get_hands(&self) -> (u8, u8, u8) {
         (
             ConsolePlayer::roll_d6(&String::from("Player's first die")),
             ConsolePlayer::roll_d6(&String::from("Player's second die")),
