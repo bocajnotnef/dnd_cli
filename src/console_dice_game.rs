@@ -56,7 +56,7 @@ impl dice_game_core::Player for RandomPlayer {
         }
     }
 
-    fn get_meaningful_rolls(&mut self) -> (u8, u8, u8) {
+    fn get_hands(&mut self) -> (u8, u8, u8) {
         return (
             // 3d6
             self.rand.gen_range(1, 7),
@@ -66,8 +66,8 @@ impl dice_game_core::Player for RandomPlayer {
     }
 
     fn inform_of_result(&self, result: dice_game_core::PlayerResult) {
-        if let dice_game_core::PlayerResult::Won(amount) = result {
-            println!()
+        if let dice_game_core::PlayerResult::Won(_) = result {
+            println!("{} won!", self.description)
         }
     }
 }
@@ -136,7 +136,7 @@ impl dice_game_core::Player for ConsolePlayer {
       }
     }
 
-    fn get_meaningful_rolls(&mut self) -> (u8, u8, u8) {
+    fn get_hands(&mut self) -> (u8, u8, u8) {
         (
             ConsolePlayer::roll_d6(&String::from("Player's first die")),
             ConsolePlayer::roll_d6(&String::from("Player's second die")),
