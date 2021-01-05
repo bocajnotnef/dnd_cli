@@ -10,7 +10,7 @@ pub enum PlayerAction {
 
 pub enum PlayerResult {
     Lost,
-    Won(u16), // TODO: refactor w/ currency units
+    Won(u32), // TODO: refactor w/ currency units
 }
 
 // TODO: put the random generator in like, 'GlobalGame' or 'MetaUniverse' or something
@@ -28,20 +28,34 @@ pub struct DiceGame {
     players: Vec<Box<dyn Player>>,
 }
 
+#[derive(Debug)]
+struct PlayerRoll {
+    index: usize,
+    roll: u8,
+}
+
+struct PhaseTwoState {
+    pot: u32,
+    indicies_in_play: Vec::<usize>
+}
+
 impl DiceGame {
+    pub fn rules() -> &'static str {
+        return "The Rules:
+\t* Roll 4d6--keep them hidden!
+\t* Choose one of the d6 to reveal to the other players.
+\t* Your goal is to have the highest score, using only your remaining 3d6.
+\t* Place bets, in order of descending revealed dice. (i.e., highest first)
+\t* After all bets are settled (e.g. everyone has called/raised/folded), reveal your dice.";
+    }
+
     pub fn new(players: Vec<Box<dyn Player>>) -> DiceGame {
         DiceGame { players: players }
     }
 
-    pub fn run(&mut self) {
-        // PHASE ONE: Get all the rolls
-
+    // TODO: once factor out randomness, make static
+    fn get_and_sort_initial_rolls(&mut self) -> Vec::<PlayerRoll> {
         // get initial rolls, then sort them to get our betting order
-        #[derive(Debug)]
-        struct PlayerRoll {
-            index: usize,
-            roll: u8,
-        }
         let mut initial_rolls: Vec<PlayerRoll> = Vec::new();
         for (position, player_box) in self.players.iter_mut().enumerate() {
             initial_rolls.push(PlayerRoll {
@@ -50,13 +64,11 @@ impl DiceGame {
             });
         }
         initial_rolls.sort_by(|a, b| a.roll.cmp(&b.roll));
+        return initial_rolls
+    }
 
-        // PHASE TWO: Place all the bets
-        println!(
-            "The betting order is: (bet, is_player): {:?}",
-            initial_rolls
-        );
-
+    // TODO: once factor out randomness, make static
+    fn process_bets(&mut self, initial_rolls: &Vec<PlayerRoll>) -> PhaseTwoState {
         let mut the_bet = self.players[initial_rolls[0].index].make_initial_bet();
         // NOTE: bet order/indexing should match initial_rolls ordering, but this is implicit
         let mut bets: Vec<PlayerAction> = Vec::new();
@@ -114,6 +126,29 @@ impl DiceGame {
             "Raise where there shouldn't be one"
         );
 
+        let the_pot = bets.iter().fold(0, |acc, bet| if let PlayerAction::Call = bet {acc + the_bet} else {acc});
+        let mut player_indicies_remaining: Vec<usize> = Vec::new();
+
+        for (player_index, action) in bets.iter().enumerate() {
+            if let PlayerAction::Fold = action {
+                continue;
+            }
+
+            player_indicies_remaining.push(player_index);
+        }
+
+        PhaseTwoState { pot: the_pot as u32, indicies_in_play: player_indicies_remaining}
+    }
+
+    pub fn run(&mut self) {
+        let initial_rolls = self.get_and_sort_initial_rolls();
+
+        let PhaseTwoState{pot: the_pot, indicies_in_play: playing_indices} = self.process_bets(&initial_rolls);
+        println!(
+            "The betting order is: (bet, is_player): {:?}",
+            initial_rolls
+        );
+
         // PHASE 3: figure out who won
         // TODO: should get the player's other dice rolls @ startup, not here
 
@@ -124,8 +159,6 @@ impl DiceGame {
             final_rolls.push((rolls.0 + rolls.1 + rolls.2).into());
         }
 
-        let the_pot = bets.iter().fold(0, |acc, bet| if let PlayerAction::Call = bet {acc + the_bet} else {acc});
-
         // https://stackoverflow.com/a/57815298
         let winning_player_idx = final_rolls.iter().enumerate().max_by(|(_, value0), (_, value1)| value0.cmp(value1)).map(|(idx, _)| idx).unwrap();
         for (index, player) in self.players.iter().enumerate() {
@@ -135,14 +168,5 @@ impl DiceGame {
                 player.inform_of_result(PlayerResult::Lost);
             }
         }
-    }
-
-    pub fn rules() -> &'static str {
-        return "The Rules:
-\t* Roll 4d6--keep them hidden!
-\t* Choose one of the d6 to reveal to the other players.
-\t* Your goal is to have the highest score, using only your remaining 3d6.
-\t* Place bets, in order of descending revealed dice. (i.e., highest first)
-\t* After all bets are settled (e.g. everyone has called/raised/folded), reveal your dice.";
     }
 }
