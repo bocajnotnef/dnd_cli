@@ -1,5 +1,7 @@
-use core::panic;
+
 use std::io::{stdin, stdout, Write};
+
+use mockall::{automock, mock, predicate::*};
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum PlayerAction {
@@ -8,6 +10,7 @@ pub enum PlayerAction {
     Raise(u16),
 }
 
+#[derive(Clone, Debug, PartialEq)]
 pub enum PlayerResult {
     Lost,
     Won(u32), // TODO: refactor w/ currency units
@@ -15,6 +18,7 @@ pub enum PlayerResult {
 
 // TODO: put the random generator in like, 'GlobalGame' or 'MetaUniverse' or something
 // currently VERY STUPID that rolling a dice modifies the playerstate
+#[cfg_attr(test, automock)]
 pub trait Player {
     fn get_initial_roll(&self) -> u8;
     // TODO: consider units for bets;
@@ -167,5 +171,38 @@ impl DiceGame {
                 player.inform_of_result(PlayerResult::Lost);
             }
         }
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use std::cell::RefCell;
+    use super::*;
+
+    #[test]
+    fn test_when_all_AI_fold_expect_the_player_will_win() {
+        let mut ai_1 = Box::new(MockPlayer::new());
+        ai_1.expect_get_initial_roll().times(1).return_const(1);
+        ai_1.expect_make_initial_bet().times(0);
+        ai_1.expect_react_to_bet()
+            .with(mockall::predicate::eq(3)).times(1).return_const(PlayerAction::Fold);
+        ai_1.expect_inform_of_result().with(mockall::predicate::eq(PlayerResult::Lost));
+
+        let mut ai_2 = Box::new(MockPlayer::new());
+        ai_2.expect_get_initial_roll().times(1).return_const(1);
+        ai_2.expect_make_initial_bet().times(0);
+        ai_2.expect_react_to_bet()
+            .with(mockall::predicate::eq(3)).times(1).return_const(PlayerAction::Fold);
+        ai_2.expect_inform_of_result().with(mockall::predicate::eq(PlayerResult::Lost));
+
+        let mut player = Box::new(MockPlayer::new());
+        player.expect_get_initial_roll().times(1).return_const(6);
+        player.expect_make_initial_bet().times(1).return_const(1u16);
+        player.expect_react_to_bet().times(0);
+        player.expect_inform_of_result().with(mockall::predicate::eq(PlayerResult::Won(1)));
+
+        let mut the_game = DiceGame::new(vec!(ai_1, ai_2, player));
+        the_game.run();
     }
 }
